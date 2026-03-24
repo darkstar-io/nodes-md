@@ -38,16 +38,18 @@ function listNotes(searchTerm, dir = DATA_DIR) {
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'));
   const notes = files.map((f) => parseNote(path.join(dir, f)));
 
+  const sorted = notes.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
   if (searchTerm) {
     const term = searchTerm.toLowerCase();
-    return notes.filter(
+    return sorted.filter(
       (n) =>
         (n.title && n.title.toLowerCase().includes(term)) ||
         (n.content && n.content.toLowerCase().includes(term))
     );
   }
 
-  return notes;
+  return sorted;
 }
 
 function getNote(id, dir = DATA_DIR) {

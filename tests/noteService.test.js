@@ -60,8 +60,12 @@ describe('noteService.getNote', () => {
     expect(fetched.content).toBe('Some text');
   });
 
-  test('returns null for a non-existent id', () => {
+  test('returns null for a non-existent id (fails UUID_RE)', () => {
     expect(noteService.getNote('does-not-exist', tmpDir)).toBeNull();
+  });
+
+  test('returns null for a valid UUID with no matching file', () => {
+    expect(noteService.getNote('00000000-0000-0000-0000-000000000000', tmpDir)).toBeNull();
   });
 });
 

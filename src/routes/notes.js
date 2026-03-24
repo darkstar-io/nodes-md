@@ -55,7 +55,10 @@ router.put('/:id', (req, res, next) => {
     if (title !== undefined && (typeof title !== 'string' || title.trim() === '')) {
       return res.status(400).json({ error: 'title must be a non-empty string' });
     }
-    const note = noteService.updateNote(req.params.id, { title, content });
+    const note = noteService.updateNote(req.params.id, {
+      title: title !== undefined ? title.trim() : undefined,
+      content,
+    });
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
