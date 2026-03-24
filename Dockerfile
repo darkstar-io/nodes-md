@@ -6,6 +6,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY src/ ./src/
+COPY public/ ./public/
 COPY data/.gitkeep ./data/.gitkeep
 
 ENV PORT=3000
