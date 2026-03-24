@@ -24,6 +24,8 @@ const noteBody = document.getElementById('note-body');
 const btnEdit = document.getElementById('btn-edit');
 const btnDelete = document.getElementById('btn-delete');
 
+const loadError = document.getElementById('load-error');
+
 const noteForm = document.getElementById('note-form');
 const formTitle = document.getElementById('form-title');
 const formError = document.getElementById('form-error');
@@ -39,7 +41,7 @@ async function apiFetch(path, options = {}) {
   let res;
   try {
     res = await fetch(path, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: options.body ? { 'Content-Type': 'application/json' } : {},
       ...options,
     });
   } catch (err) {
@@ -172,12 +174,14 @@ function showNoteForm(note = null) {
 // Actions
 // ---------------------------------------------------------------------------
 async function loadNotes(search = '') {
+  loadError.classList.add('hidden');
+  loadError.textContent = '';
   try {
     notes = await fetchNotes(search);
   } catch (err) {
     notes = [];
-    formError.textContent = err.message;
-    formError.classList.remove('hidden');
+    loadError.textContent = err.message;
+    loadError.classList.remove('hidden');
   }
   renderList(notes);
 }
@@ -186,7 +190,13 @@ async function selectNote(id) {
   selectedId = id;
   renderList(notes);
 
-  const note = await fetchNote(id);
+  let note;
+  try {
+    note = await fetchNote(id);
+  } catch (err) {
+    alert(err.message);
+    return;
+  }
   if (note) {
     showNoteView(note);
   }
@@ -266,7 +276,13 @@ btnNew.addEventListener('click', () => {
 
 btnEdit.addEventListener('click', async () => {
   if (!selectedId) return;
-  const note = await fetchNote(selectedId);
+  let note;
+  try {
+    note = await fetchNote(selectedId);
+  } catch (err) {
+    alert(err.message);
+    return;
+  }
   if (note) showNoteForm(note);
 });
 
@@ -274,12 +290,18 @@ btnDelete.addEventListener('click', handleDelete);
 
 btnSave.addEventListener('click', handleSave);
 
-btnCancel.addEventListener('click', () => {
+btnCancel.addEventListener('click', async () => {
   if (selectedId) {
-    fetchNote(selectedId).then((note) => {
-      if (note) showNoteView(note);
-      else showPlaceholder();
-    });
+    let note;
+    try {
+      note = await fetchNote(selectedId);
+    } catch (err) {
+      alert(err.message);
+      showPlaceholder();
+      return;
+    }
+    if (note) showNoteView(note);
+    else showPlaceholder();
   } else {
     showPlaceholder();
   }
