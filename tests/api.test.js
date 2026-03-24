@@ -26,6 +26,20 @@ afterEach(() => {
     .forEach((f) => fs.unlinkSync(path.join(tmpDir, f)));
 });
 
+describe('GET /', () => {
+  test('returns 200 with HTML content-type', async () => {
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/html/);
+  });
+
+  test('API routes still work after static middleware is added', async () => {
+    const res = await request(app).get('/api/notes');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+});
+
 describe('GET /health', () => {
   test('returns 200 with {status: ok}', async () => {
     const res = await request(app).get('/health');
