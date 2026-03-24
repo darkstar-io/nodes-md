@@ -36,10 +36,15 @@ const btnCancel = document.getElementById('btn-cancel');
 // API helpers
 // ---------------------------------------------------------------------------
 async function apiFetch(path, options = {}) {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+  let res;
+  try {
+    res = await fetch(path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+  } catch (err) {
+    throw new Error('Network error — please check your connection and try again.');
+  }
   if (res.status === 204) return null;
   return res.json().then((data) => ({ ok: res.ok, status: res.status, data }));
 }
@@ -70,8 +75,8 @@ async function updateNote(id, title, content) {
 }
 
 async function deleteNote(id) {
-  const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' });
-  return res.status === 204;
+  const result = await apiFetch(`/api/notes/${id}`, { method: 'DELETE' });
+  return result === null; // apiFetch returns null for 204 No Content
 }
 
 // ---------------------------------------------------------------------------
@@ -137,7 +142,7 @@ function showNoteView(note) {
 
   noteTitle.textContent = note.title;
   noteMeta.textContent = `Updated ${formatDate(note.updatedAt)}`;
-  noteBody.innerHTML = marked.parse(note.content || '');
+  noteBody.innerHTML = DOMPurify.sanitize(marked.parse(note.content || ''));
 }
 
 function showNoteForm(note = null) {
@@ -167,7 +172,13 @@ function showNoteForm(note = null) {
 // Actions
 // ---------------------------------------------------------------------------
 async function loadNotes(search = '') {
-  notes = await fetchNotes(search);
+  try {
+    notes = await fetchNotes(search);
+  } catch (err) {
+    notes = [];
+    formError.textContent = err.message;
+    formError.classList.remove('hidden');
+  }
   renderList(notes);
 }
 
@@ -195,10 +206,16 @@ async function handleSave() {
   formError.classList.add('hidden');
 
   let result;
-  if (editingId) {
-    result = await updateNote(editingId, title, content);
-  } else {
-    result = await createNote(title, content);
+  try {
+    if (editingId) {
+      result = await updateNote(editingId, title, content);
+    } else {
+      result = await createNote(title, content);
+    }
+  } catch (err) {
+    formError.textContent = err.message;
+    formError.classList.remove('hidden');
+    return;
   }
 
   if (!result.ok) {
@@ -220,11 +237,21 @@ async function handleDelete() {
   const confirmed = window.confirm('Delete this note? This cannot be undone.');
   if (!confirmed) return;
 
-  const ok = await deleteNote(selectedId);
+  let ok;
+  try {
+    ok = await deleteNote(selectedId);
+  } catch (err) {
+    alert(err.message);
+    return;
+  }
+
   if (ok) {
     selectedId = null;
     await loadNotes(searchInput.value.trim());
     showPlaceholder();
+  } else {
+    alert('Failed to delete the note. It may have already been removed.');
+    await loadNotes(searchInput.value.trim());
   }
 }
 
